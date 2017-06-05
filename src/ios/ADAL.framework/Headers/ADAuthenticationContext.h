@@ -284,6 +284,7 @@ typedef enum
  @param clientId The client identifier
  @param userId The required user id of the authenticated user.
  @param completionBlock The block to execute upon completion. You can use embedded block, e.g. "^(ADAuthenticationResult res){ <your logic here> }"
+
  */
 - (void)acquireTokenForAssertion:(NSString*)assertion
                    assertionType:(ADAssertionType)assertionType

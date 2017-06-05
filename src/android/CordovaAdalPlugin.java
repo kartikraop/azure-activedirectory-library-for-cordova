@@ -20,6 +20,7 @@ import org.apache.cordova.PermissionHelper;
 import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
@@ -47,6 +48,7 @@ public class CordovaAdalPlugin extends CordovaPlugin {
     private final Hashtable<String, AuthenticationContext> contexts = new Hashtable<String, AuthenticationContext>();
     private AuthenticationContext currentContext;
     private CallbackContext callbackContext;
+    private CallbackContext loggerCallbackContext;
 
     public CordovaAdalPlugin() {
 
@@ -79,31 +81,51 @@ public class CordovaAdalPlugin extends CordovaPlugin {
 
         } else if (action.equals("acquireTokenAsync")) {
 
-            String authority = args.getString(0);
-            boolean validateAuthority = args.optBoolean(1, true);
-            String resourceUrl = args.getString(2);
-            String clientId = args.getString(3);
-            String redirectUrl = args.getString(4);
-            String userId = args.optString(5, null);
-            userId = userId.equals("null") ? null : userId;
-            String extraQueryParams = args.optString(6, null);
-            extraQueryParams = extraQueryParams.equals("null") ? null : extraQueryParams;
+            final String authority = args.getString(0);
+            final boolean validateAuthority = args.optBoolean(1, true);
+            final String resourceUrl = args.getString(2);
+            final String clientId = args.getString(3);
+            final String redirectUrl = args.getString(4);
+            final String userId = args.optString(5, null).equals("null") ? null : args.optString(5, null);
+            final String extraQueryParams = args.optString(6, null).equals("null") ? null : args.optString(6, null);
 
-            return acquireTokenAsync(authority, validateAuthority, resourceUrl, clientId, redirectUrl, userId, extraQueryParams);
+            cordova.getThreadPool().execute(new Runnable() {
+                @Override
+                public void run() {
+                    acquireTokenAsync(
+                            authority,
+                            validateAuthority,
+                            resourceUrl,
+                            clientId,
+                            redirectUrl,
+                            userId,
+                            extraQueryParams);
+                }
+            });
 
+            return true;
         } else if (action.equals("acquireTokenSilentAsync")) {
 
-            String authority = args.getString(0);
-            boolean validateAuthority = args.optBoolean(1, true);
-            String resourceUrl = args.getString(2);
-            String clientId = args.getString(3);
-            String userId = args.getString(4);
+            final String authority = args.getString(0);
+            final boolean validateAuthority = args.optBoolean(1, true);
+            final String resourceUrl = args.getString(2);
+            final String clientId = args.getString(3);
 
             // This is a workaround for Cordova bridge issue. When null us passed from JS side
             // it is being translated to "null" string
-            userId = userId.equals("null") ? null : userId;
+            final String userId = args.getString(4).equals("null") ? null : args.getString(4);
 
-            return acquireTokenSilentAsync(authority, validateAuthority, resourceUrl, clientId, userId);
+            cordova.getThreadPool().execute(new Runnable() {
+                @Override
+                public void run() {
+                    acquireTokenSilentAsync(
+                            authority,
+                            validateAuthority,
+                            resourceUrl, clientId, userId);
+                }
+            });
+
+            return true;
 
         } else if (action.equals("tokenCacheClear")){
 
@@ -133,6 +155,12 @@ public class CordovaAdalPlugin extends CordovaPlugin {
 
             boolean useBroker = args.getBoolean(0);
             return setUseBroker(useBroker);
+        } else if (action.equals("setLogger")) {
+            this.loggerCallbackContext = callbackContext;
+            return setLogger();
+        } else if (action.equals("setLogLevel")) {
+            Integer logLevel = args.getInt(0);
+            return setLogLevel(logLevel);
         }
 
         return false;
@@ -151,14 +179,14 @@ public class CordovaAdalPlugin extends CordovaPlugin {
         return true;
     }
 
-    private boolean acquireTokenAsync(String authority, boolean validateAuthority, String resourceUrl, String clientId, String redirectUrl, String userId, String extraQueryParams) {
+    private void acquireTokenAsync(String authority, boolean validateAuthority, String resourceUrl, String clientId, String redirectUrl, String userId, String extraQueryParams) {
 
         final AuthenticationContext authContext;
         try{
             authContext = getOrCreateContext(authority, validateAuthority);
         } catch (Exception e) {
             callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, e.getMessage()));
-            return true;
+            return;
         }
 
         if (userId != null) {
@@ -173,14 +201,18 @@ public class CordovaAdalPlugin extends CordovaPlugin {
             }
         }
 
-        authContext.acquireToken(this.cordova.getActivity(), resourceUrl, clientId, redirectUrl,
-                userId, SHOW_PROMPT_ALWAYS, extraQueryParams, new DefaultAuthenticationCallback(callbackContext));
-
-        return true;
-
+        authContext.acquireToken(
+                this.cordova.getActivity(),
+                resourceUrl,
+                clientId,
+                redirectUrl,
+                userId,
+                SHOW_PROMPT_ALWAYS,
+                extraQueryParams,
+                new DefaultAuthenticationCallback(callbackContext));
     }
 
-    private boolean acquireTokenSilentAsync(String authority, boolean validateAuthority, String resourceUrl, String clientId, String userId) {
+    private void acquireTokenSilentAsync(String authority, boolean validateAuthority, String resourceUrl, String clientId, String userId) {
 
         final AuthenticationContext authContext;
         try{
@@ -204,11 +236,10 @@ public class CordovaAdalPlugin extends CordovaPlugin {
 
         } catch (Exception e) {
             callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, e.getMessage()));
-            return true;
+            return;
         }
 
-        authContext.acquireTokenSilent(resourceUrl, clientId, userId, new DefaultAuthenticationCallback(callbackContext));
-        return true;
+        authContext.acquireTokenSilentAsync(resourceUrl, clientId, userId, new DefaultAuthenticationCallback(callbackContext));
     }
 
     private boolean readTokenCacheItems(String authority, boolean validateAuthority) throws JSONException {
@@ -275,16 +306,6 @@ public class CordovaAdalPlugin extends CordovaPlugin {
         try {
             AuthenticationSettings.INSTANCE.setUseBroker(useBroker);
 
-            // Android 6.0 "Marshmallow" introduced a new permissions model where the user can turn on and off permissions as necessary.
-            // This means that applications must handle these permission in run time.
-            // http://cordova.apache.org/docs/en/latest/guide/platforms/android/plugin.html#android-permissions
-            if (useBroker && Build.VERSION.SDK_INT >= 23 /* Build.VERSION_CODES.M */ ) {
-
-                requestBrokerPermissions();
-                // Cordova callback will be handled by requestBrokerPermissions method
-                return true;
-            }
-
         } catch (Exception e) {
             callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, e.getMessage()));
             return true;
@@ -294,16 +315,45 @@ public class CordovaAdalPlugin extends CordovaPlugin {
         return true;
     }
 
-    private void requestBrokerPermissions() {
-
-        // USE_CREDENTIALS and MANAGE_ACOUNTS are deprecated and not required
-        if(PermissionHelper.hasPermission(this, Manifest.permission.GET_ACCOUNTS)) { // android.permission.GET_ACCOUNTS
-            // already granted
-            callbackContext.success();
-            return;
+    private boolean setLogLevel(Integer logLevel) {
+        try {
+            Logger.LogLevel level = Logger.LogLevel.values()[logLevel];
+            Logger.getInstance().setLogLevel(level);
+        }
+        catch (Exception e) {
+            callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, e.getMessage()));
+            return true;
         }
 
-        PermissionHelper.requestPermission(this, GET_ACCOUNTS_PERMISSION_REQ_CODE, Manifest.permission.GET_ACCOUNTS);
+        callbackContext.success();
+        return true;
+    }
+
+    private boolean setLogger() {
+        Logger.getInstance().setExternalLogger(new Logger.ILogger() {
+            @Override
+            public void Log(String tag, String message, String additionalMessage, Logger.LogLevel level, ADALError errorCode) {
+
+                JSONObject logItem = new JSONObject();
+                try {
+                    logItem.put("tag", tag);
+                    logItem.put("additionalMessage", additionalMessage);
+                    logItem.put("message", message);
+                    logItem.put("level", level.ordinal());
+                    logItem.put("errorCode", errorCode.ordinal());
+                }
+
+                catch(Exception ex) {
+                    ex.printStackTrace();
+                }
+
+                PluginResult logResult = new PluginResult(PluginResult.Status.OK, logItem);
+                logResult.setKeepCallback(true);
+                loggerCallbackContext.sendPluginResult(logResult);
+            }
+        });
+
+        return true;
     }
 
     @Override

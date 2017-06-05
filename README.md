@@ -21,10 +21,10 @@ Once you’ve updated plugin to the latest version your application will continu
 - navigate to your app's directory
 - run the following commands:
 
-  ```
-cordova plugin rm cordova-plugin-ms-adal --save
-cordova plugin add cordova-plugin-ms-adal@0.8.x --save
-  ```
+    ```
+    cordova plugin rm cordova-plugin-ms-adal --save
+    cordova plugin add cordova-plugin-ms-adal@0.8.x --save
+    ```
 
 ## Community Help and Support
 
@@ -166,7 +166,30 @@ logic based on this information. **Important:** code is platform specific, see b
  * Windows: https://github.com/AzureAD/azure-activedirectory-library-for-dotnet/blob/master/src/ADAL.PCL/Constants.cs
 * err.details - Raw error information returned by Apache Cordova bridge and native implementation (if available).
 
+## Logging
+You can configure the plugin to collect log messages from native libraries to help diagnose issues. To configure logging make the following call to set a callback that will be invoked every time when new log message is generated.
+```javascript
+Microsoft.ADAL.AuthenticationSettings.setLogger(function logger(logItem) {
+  ...
+});
+```
+`setLogger` method takes user's logger function, which will be triggered each time with `LogItem` instance when internal logs are received.
+`LogItem` instance includes the following properties:
+* message - A short log message describing the event that occurred
+* additionalMessage - A longer message that contains other details relevant to event (android, iOS)
+* level - The level (number) of the log message. **Important:** level is platform specific, see below for more details:
+  * iOS: https://github.com/AzureAD/azure-activedirectory-library-for-objc/blob/c891135340077046ddd1065bcaaad8dc8d29ea60/ADAL/src/public/ADLogger.h
+  * Android: https://github.com/AzureAD/azure-activedirectory-library-for-android/blob/14794061e6791ea51a162195a8b17735b6a81ec5/adal/src/main/java/com/microsoft/aad/adal/Logger.java
+  * Windows: https://github.com/AzureAD/azure-activedirectory-library-for-dotnet/blob/924ad544439e9b136ccc3cfc5ed9c07a984f3fb9/src/ADAL.PCL/IAdalLogCallback.cs
+* tag - tag for the log message (android)
+* errorCode - An integer error code if the log message is an error (android, iOS)
 
+To set the logging level in your application call
+```javascript
+Microsoft.ADAL.AuthenticationSettings.setLogLevel(0)
+.then(function() {
+  ...
+```
 
 ## Known issues and workarounds
 
@@ -201,34 +224,39 @@ Multiple login dialog windows will be shown if `acquireTokenAsync` is called mul
   Cordova CLI can be easily installed via NPM package manager: `npm install -g cordova`
 
 * Additional prerequisites for each target platform can be found at [Cordova platforms documentation](http://cordova.apache.org/docs/en/edge/guide_platforms_index.md.html#Platform%20Guides) page:
- * [Instructions for Android](http://cordova.apache.org/docs/en/edge/guide_platforms_android_index.md.html#Android%20Platform%20Guide)
- * [Instructions for iOS](http://cordova.apache.org/docs/en/edge/guide_platforms_ios_index.md.html#iOS%20Platform%20Guide)
- * [Instructions for Windows] (http://cordova.apache.org/docs/en/edge/guide_platforms_win8_index.md.html#Windows%20Platform%20Guide)
+  * [Instructions for Android](http://cordova.apache.org/docs/en/edge/guide_platforms_android_index.md.html#Android%20Platform%20Guide)
+  * [Instructions for iOS](http://cordova.apache.org/docs/en/edge/guide_platforms_ios_index.md.html#iOS%20Platform%20Guide)
+  * [Instructions for Windows] (http://cordova.apache.org/docs/en/edge/guide_platforms_win8_index.md.html#Windows%20Platform%20Guide)
 
 ### To build and run sample application
 
-  * Clone plugin repository into a directory of your choice
+* Clone plugin repository into a directory of your choice
 
-    `git clone https://github.com/AzureAD/azure-activedirectory-library-for-cordova.git`
+    ```
+    git clone https://github.com/AzureAD/azure-activedirectory-library-for-cordova.git
+    ```
 
-  * Create a project and add the platforms you want to support
+* Create a project and add the platforms you want to support
 
-    `cordova create ADALSample --copy-from="azure-activedirectory-library-for-cordova/sample"`
+    ```
+    cordova create ADALSample --copy-from="azure-activedirectory-library-for-cordova/sample"
+    cd ADALSample
+    cordova platform add android
+    cordova platform add ios
+    cordova platform add windows
+    ```
 
-    `cd ADALSample`
+* Add the plugin to your project
 
-    `cordova platform add android`
+    ```
+    cordova plugin add ../azure-activedirectory-library-for-cordova
+    ```
 
-    `cordova platform add ios`
+* Build and run application
 
-    `cordova platform add windows`
-
-  * Add the plugin to your project
-
-    `cordova plugin add ../azure-activedirectory-library-for-cordova`
-
-  * Build and run application: `cordova run`.
-
+    ```
+    cordova run
+    ```
 
 ## Setting up an Application in Azure AD
 
@@ -240,13 +268,15 @@ This plugin contains test suite, based on [Cordova test-framework plugin](https:
 
 To run the tests you need to create a new application as described in [Installation Instructions section](#installation-instructions) and then do the following steps:
 
-  * Add test suite to application
+* Add test suite to application
 
-    `cordova plugin add ../azure-activedirectory-library-for-cordova/tests`
+    ```
+    cordova plugin add ../azure-activedirectory-library-for-cordova/tests
+    ```
 
-  * Update application's config.xml file: change `<content src="index.html" />` to `<content src="cdvtests/index.html" />`
-  * Change AD-specific settings for test application at the beginning of `plugins\cordova-plugin-ms-adal\www\tests.js` file. Update `AUTHORITY_URL`, `RESOURCE_URL`, `REDIRECT_URL`, `APP_ID` to values, provided by your Azure AD. For instructions how to setup an Azure AD application see [Setting up an Application in Azure AD section](#setting-up-an-application-in-azure-ad).
-  * Build and run application.
+* Update application's config.xml file: change `<content src="index.html" />` to `<content src="cdvtests/index.html" />`
+* Change AD-specific settings for test application at the beginning of `plugins\cordova-plugin-ms-adal\www\tests.js` file. Update `AUTHORITY_URL`, `RESOURCE_URL`, `REDIRECT_URL`, `APP_ID` to values, provided by your Azure AD. For instructions how to setup an Azure AD application see [Setting up an Application in Azure AD section](#setting-up-an-application-in-azure-ad).
+* Build and run application.
 
 ## Windows Quirks ##
 Plugin is based on native ADAL v2 as ADAL v3 [does not support Winmd anymore](https://stackoverflow.com/questions/37467211/adal-3-windown-8-1-app-nuget-update-failing#comment62469160_37468708).
