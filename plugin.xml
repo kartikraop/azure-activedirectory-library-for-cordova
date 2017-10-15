@@ -87,12 +87,12 @@
         <!-- (CB-11854) CODE_SIGN_ENTITLEMENTS for ios@4.3.0 and up -->
         <config-file target="*-Debug.plist" parent="keychain-access-groups">
             <array>
-                <string>$(AppIdentifierPrefix)com.microsoft.adalcache</string>
+                <string>$(AppIdentifierPrefix)com.microsoft.adalcache</string><string>$(AppIdentifierPrefix)com.microsoft.sso</string>
             </array>
         </config-file>
         <config-file target="*-Release.plist" parent="keychain-access-groups">
             <array>
-                <string>$(AppIdentifierPrefix)com.microsoft.adalcache</string>
+                <string>$(AppIdentifierPrefix)com.microsoft.adalcache</string><string>$(AppIdentifierPrefix)com.microsoft.sso</string>
             </array>
         </config-file>
 
