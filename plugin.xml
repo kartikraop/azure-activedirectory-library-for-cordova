@@ -85,7 +85,7 @@
         <framework src="src/ios/ADAL.framework" custom="true"/>
 
         <!-- (CB-11854) CODE_SIGN_ENTITLEMENTS for ios@4.3.0 and up -->
-        <config-file target="*-Debug.plist" parent="keychain-access-groups">
+        <!-- <config-file target="*-Debug.plist" parent="keychain-access-groups">
             <array>
                 <string>$(AppIdentifierPrefix)com.microsoft.adalcache</string>
             </array>
@@ -94,7 +94,7 @@
             <array>
                 <string>$(AppIdentifierPrefix)com.microsoft.adalcache</string>
             </array>
-        </config-file>
+        </config-file> -->
 
         <!--
         Plist sections below are required for brokered authentication support
