@@ -53,6 +53,7 @@ public class CordovaAdalPlugin extends CordovaPlugin {
     public CordovaAdalPlugin() {
         // Issue: https://github.com/AzureAD/azure-activedirectory-library-for-android/wiki/Common-Issues-With-AndroidKeyStore
         // Curretly every Android app the uses ADAL is required to pass secret key
+        // This must not be removed, without handling upgrade scenrios and users signed in encrypted with secret key
         try {
             SecretKey secretKey = this.createSecretKey(SECRET_KEY);
             AuthenticationSettings.INSTANCE.setSecretKey(secretKey.getEncoded());
