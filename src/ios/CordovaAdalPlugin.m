@@ -19,7 +19,7 @@
 
 - (void)pluginInitialize
 {
-    existingContexts = [NSMutableDictionary dictionaryWithCapacity:0];
+    existingContexts = [NSMutableDictionary new];
 }
 
 - (void)createAsync:(CDVInvokedUrlCommand *)command
