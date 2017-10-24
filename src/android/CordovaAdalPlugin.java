@@ -42,8 +42,8 @@ public class CordovaAdalPlugin extends CordovaPlugin {
     private static final PromptBehavior SHOW_PROMPT_ALWAYS = PromptBehavior.Always;
 
     private static final int GET_ACCOUNTS_PERMISSION_REQ_CODE = 0;
-    private static final String PERMISSION_DENIED_ERROR = "Permissions denied";
-    private static final String SECRET_KEY = "com.microsoft.aad.CordovaADAL";
+    private static final String PERMISSION_DENIED_ERROR =  "Permissions denied";
+    private static final String SECRET_KEY =  "com.microsoft.aad.CordovaADAL";
 
     private final Hashtable<String, AuthenticationContext> contexts = new Hashtable<String, AuthenticationContext>();
     private AuthenticationContext currentContext;
@@ -51,11 +51,17 @@ public class CordovaAdalPlugin extends CordovaPlugin {
     private CallbackContext loggerCallbackContext;
 
     public CordovaAdalPlugin() {
-        // Issue: https://github.com/AzureAD/azure-activedirectory-library-for-android/wiki/Common-Issues-With-AndroidKeyStore
-        // Curretly every Android app the uses ADAL is required to pass secret key
-        // This must not be removed, without handling upgrade scenrios and users signed in encrypted with secret key
-        // Must be called before calling any method in ADAL
-        prepareAdalSecretKey();
+
+        // Android API < 18 does not support AndroidKeyStore so ADAL requires
+        // some extra work to crete and pass secret key to ADAL.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            try {
+                SecretKey secretKey = this.createSecretKey(SECRET_KEY);
+                AuthenticationSettings.INSTANCE.setSecretKey(secretKey.getEncoded());
+            } catch (Exception e) {
+                Log.w("CordovaAdalPlugin", "Unable to create secret key: " + e.getMessage());
+            }
+        }
     }
 
     @Override
@@ -86,7 +92,13 @@ public class CordovaAdalPlugin extends CordovaPlugin {
             cordova.getThreadPool().execute(new Runnable() {
                 @Override
                 public void run() {
-                    acquireTokenAsync(authority, validateAuthority, resourceUrl, clientId, redirectUrl, userId,
+                    acquireTokenAsync(
+                            authority,
+                            validateAuthority,
+                            resourceUrl,
+                            clientId,
+                            redirectUrl,
+                            userId,
                             extraQueryParams);
                 }
             });
@@ -106,25 +118,28 @@ public class CordovaAdalPlugin extends CordovaPlugin {
             cordova.getThreadPool().execute(new Runnable() {
                 @Override
                 public void run() {
-                    acquireTokenSilentAsync(authority, validateAuthority, resourceUrl, clientId, userId);
+                    acquireTokenSilentAsync(
+                            authority,
+                            validateAuthority,
+                            resourceUrl, clientId, userId);
                 }
             });
 
             return true;
 
-        } else if (action.equals("tokenCacheClear")) {
+        } else if (action.equals("tokenCacheClear")){
 
             String authority = args.getString(0);
             boolean validateAuthority = args.optBoolean(1, true);
             return clearTokenCache(authority, validateAuthority);
 
-        } else if (action.equals("tokenCacheReadItems")) {
+        } else if (action.equals("tokenCacheReadItems")){
 
             String authority = args.getString(0);
             boolean validateAuthority = args.optBoolean(1, true);
             return readTokenCacheItems(authority, validateAuthority);
 
-        } else if (action.equals("tokenCacheDeleteItem")) {
+        } else if (action.equals("tokenCacheDeleteItem")){
 
             String authority = args.getString(0);
             boolean validateAuthority = args.optBoolean(1, true);
@@ -135,8 +150,7 @@ public class CordovaAdalPlugin extends CordovaPlugin {
             String userId = args.getString(5);
             boolean isMultipleResourceRefreshToken = args.getBoolean(6);
 
-            return deleteTokenCacheItem(authority, validateAuthority, itemAuthority, resource, clientId, userId,
-                    isMultipleResourceRefreshToken);
+            return deleteTokenCacheItem(authority, validateAuthority, itemAuthority, resource, clientId, userId, isMultipleResourceRefreshToken);
         } else if (action.equals("setUseBroker")) {
 
             boolean useBroker = args.getBoolean(0);
@@ -152,15 +166,6 @@ public class CordovaAdalPlugin extends CordovaPlugin {
         return false;
     }
 
-    public static void prepareAdalSecretKey() {
-        try {
-            SecretKey secretKey = createSecretKey(SECRET_KEY);
-            AuthenticationSettings.INSTANCE.setSecretKey(secretKey.getEncoded());
-        } catch (Exception e) {
-            Log.w("CordovaAdalPlugin", "Unable to create secret key: " + e.getMessage());
-        }
-    }
-
     private boolean createAsync(String authority, boolean validateAuthority) {
 
         try {
@@ -174,11 +179,10 @@ public class CordovaAdalPlugin extends CordovaPlugin {
         return true;
     }
 
-    private void acquireTokenAsync(String authority, boolean validateAuthority, String resourceUrl, String clientId,
-            String redirectUrl, String userId, String extraQueryParams) {
+    private void acquireTokenAsync(String authority, boolean validateAuthority, String resourceUrl, String clientId, String redirectUrl, String userId, String extraQueryParams) {
 
         final AuthenticationContext authContext;
-        try {
+        try{
             authContext = getOrCreateContext(authority, validateAuthority);
         } catch (Exception e) {
             callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, e.getMessage()));
@@ -189,7 +193,7 @@ public class CordovaAdalPlugin extends CordovaPlugin {
             ITokenCacheStore cache = authContext.getCache();
             if (cache instanceof ITokenStoreQuery) {
 
-                List<TokenCacheItem> tokensForUserId = ((ITokenStoreQuery) cache).getTokensForUser(userId);
+                List<TokenCacheItem> tokensForUserId = ((ITokenStoreQuery)cache).getTokensForUser(userId);
                 if (tokensForUserId.size() > 0) {
                     // Try to acquire alias for specified userId
                     userId = tokensForUserId.get(0).getUserInfo().getDisplayableId();
@@ -197,15 +201,21 @@ public class CordovaAdalPlugin extends CordovaPlugin {
             }
         }
 
-        authContext.acquireToken(this.cordova.getActivity(), resourceUrl, clientId, redirectUrl, userId,
-                SHOW_PROMPT_ALWAYS, extraQueryParams, new DefaultAuthenticationCallback(callbackContext));
+        authContext.acquireToken(
+                this.cordova.getActivity(),
+                resourceUrl,
+                clientId,
+                redirectUrl,
+                userId,
+                SHOW_PROMPT_ALWAYS,
+                extraQueryParams,
+                new DefaultAuthenticationCallback(callbackContext));
     }
 
-    private void acquireTokenSilentAsync(String authority, boolean validateAuthority, String resourceUrl,
-            String clientId, String userId) {
+    private void acquireTokenSilentAsync(String authority, boolean validateAuthority, String resourceUrl, String clientId, String userId) {
 
         final AuthenticationContext authContext;
-        try {
+        try{
             authContext = getOrCreateContext(authority, validateAuthority);
 
             //  We should retrieve userId from broker cache since local is always empty
@@ -216,7 +226,7 @@ public class CordovaAdalPlugin extends CordovaPlugin {
                     userId = authContext.getBrokerUser();
                 }
 
-                for (UserInfo info : authContext.getBrokerUsers()) {
+                for (UserInfo info: authContext.getBrokerUsers()) {
                     if (info.getDisplayableId().equals(userId)) {
                         userId = info.getUserId();
                         break;
@@ -229,14 +239,13 @@ public class CordovaAdalPlugin extends CordovaPlugin {
             return;
         }
 
-        authContext.acquireTokenSilentAsync(resourceUrl, clientId, userId,
-                new DefaultAuthenticationCallback(callbackContext));
+        authContext.acquireTokenSilentAsync(resourceUrl, clientId, userId, new DefaultAuthenticationCallback(callbackContext));
     }
 
     private boolean readTokenCacheItems(String authority, boolean validateAuthority) throws JSONException {
 
         final AuthenticationContext authContext;
-        try {
+        try{
             authContext = getOrCreateContext(authority, validateAuthority);
         } catch (Exception e) {
             callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, e.getMessage()));
@@ -247,9 +256,9 @@ public class CordovaAdalPlugin extends CordovaPlugin {
         ITokenCacheStore cache = authContext.getCache();
 
         if (cache instanceof ITokenStoreQuery) {
-            Iterator<TokenCacheItem> cacheItems = ((ITokenStoreQuery) cache).getAll();
+            Iterator<TokenCacheItem> cacheItems = ((ITokenStoreQuery)cache).getAll();
 
-            while (cacheItems.hasNext()) {
+            while (cacheItems.hasNext()){
                 TokenCacheItem item = cacheItems.next();
                 result.put(tokenItemToJSON(item));
             }
@@ -260,19 +269,18 @@ public class CordovaAdalPlugin extends CordovaPlugin {
         return true;
     }
 
-    private boolean deleteTokenCacheItem(String authority, boolean validateAuthority, String itemAuthority,
-            String resource, String clientId, String userId, boolean isMultipleResourceRefreshToken) {
+    private boolean deleteTokenCacheItem(String authority, boolean validateAuthority, String itemAuthority,  String resource,
+                                         String clientId, String userId, boolean isMultipleResourceRefreshToken) {
 
         final AuthenticationContext authContext;
-        try {
+        try{
             authContext = getOrCreateContext(authority, validateAuthority);
         } catch (Exception e) {
             callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, e.getMessage()));
             return true;
         }
 
-        String key = CacheKey.createCacheKey(itemAuthority, resource, clientId, isMultipleResourceRefreshToken, userId,
-                null);
+        String key = CacheKey.createCacheKey(itemAuthority, resource, clientId, isMultipleResourceRefreshToken, userId, null);
         authContext.getCache().removeItem(key);
 
         callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK));
@@ -281,7 +289,7 @@ public class CordovaAdalPlugin extends CordovaPlugin {
 
     private boolean clearTokenCache(String authority, boolean validateAuthority) {
         final AuthenticationContext authContext;
-        try {
+        try{
             authContext = getOrCreateContext(authority, validateAuthority);
         } catch (Exception e) {
             callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, e.getMessage()));
@@ -311,7 +319,8 @@ public class CordovaAdalPlugin extends CordovaPlugin {
         try {
             Logger.LogLevel level = Logger.LogLevel.values()[logLevel];
             Logger.getInstance().setLogLevel(level);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, e.getMessage()));
             return true;
         }
@@ -323,8 +332,7 @@ public class CordovaAdalPlugin extends CordovaPlugin {
     private boolean setLogger() {
         Logger.getInstance().setExternalLogger(new Logger.ILogger() {
             @Override
-            public void Log(String tag, String message, String additionalMessage, Logger.LogLevel level,
-                    ADALError errorCode) {
+            public void Log(String tag, String message, String additionalMessage, Logger.LogLevel level, ADALError errorCode) {
 
                 JSONObject logItem = new JSONObject();
                 try {
@@ -335,7 +343,7 @@ public class CordovaAdalPlugin extends CordovaPlugin {
                     logItem.put("errorCode", errorCode.ordinal());
                 }
 
-                catch (Exception ex) {
+                catch(Exception ex) {
                     ex.printStackTrace();
                 }
 
@@ -356,20 +364,21 @@ public class CordovaAdalPlugin extends CordovaPlugin {
         }
     }
 
-    public void onRequestPermissionResult(int requestCode, String[] permissions, int[] grantResults)
-            throws JSONException {
-        for (int r : grantResults) {
-            if (r == PackageManager.PERMISSION_DENIED) {
-                this.callbackContext
-                        .sendPluginResult(new PluginResult(PluginResult.Status.ERROR, PERMISSION_DENIED_ERROR));
+    public void onRequestPermissionResult(int requestCode, String[] permissions,
+                                          int[] grantResults) throws JSONException
+    {
+        for(int r:grantResults)
+        {
+            if(r == PackageManager.PERMISSION_DENIED)
+            {
+                this.callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, PERMISSION_DENIED_ERROR));
                 return;
             }
         }
         callbackContext.success();
     }
 
-    private AuthenticationContext getOrCreateContext(String authority, boolean validateAuthority)
-            throws NoSuchPaddingException, NoSuchAlgorithmException {
+    private AuthenticationContext getOrCreateContext (String authority, boolean validateAuthority) throws NoSuchPaddingException, NoSuchAlgorithmException {
 
         AuthenticationContext result;
         if (!contexts.containsKey(authority)) {
@@ -383,11 +392,9 @@ public class CordovaAdalPlugin extends CordovaPlugin {
         return result;
     }
 
-    private static SecretKey createSecretKey(String key)
-            throws NoSuchAlgorithmException, UnsupportedEncodingException, InvalidKeySpecException {
+    private SecretKey createSecretKey(String key) throws NoSuchAlgorithmException, UnsupportedEncodingException, InvalidKeySpecException {
         SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("PBEWithSHA256And256BitAES-CBC-BC");
-        SecretKey tempkey = keyFactory
-                .generateSecret(new PBEKeySpec(key.toCharArray(), "abcdedfdfd".getBytes("UTF-8"), 100, 256));
+        SecretKey tempkey = keyFactory.generateSecret(new PBEKeySpec(key.toCharArray(), "abcdedfdfd".getBytes("UTF-8"), 100, 256));
         SecretKey secretKey = new SecretKeySpec(tempkey.getEncoded(), "AES");
         return secretKey;
     }
