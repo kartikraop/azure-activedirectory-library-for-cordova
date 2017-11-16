@@ -1,7 +1,3 @@
-0.10.1 - July 5, 2017
-* windows: added compatibility with VS2017
-* android: upgraded ADAL native SDK version to 1.12.0 
-
 0.10.0 - May 12, 2017
 * Add logger for consuming internal logs from native libraries
 * Bump .NET SDK version to 3.13.8
