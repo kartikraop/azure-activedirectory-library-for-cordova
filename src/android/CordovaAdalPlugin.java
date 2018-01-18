@@ -340,7 +340,9 @@ public class CordovaAdalPlugin extends CordovaPlugin {
                     logItem.put("additionalMessage", additionalMessage);
                     logItem.put("message", message);
                     logItem.put("level", level.ordinal());
-                    logItem.put("errorCode", errorCode.ordinal());
+                    if (errorCode != null) {
+                        logItem.put("errorCode", errorCode.ordinal());
+                    }
                 }
 
                 catch(Exception ex) {
