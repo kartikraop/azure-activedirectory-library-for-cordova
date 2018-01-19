@@ -42,6 +42,7 @@ class DefaultAuthenticationCallback implements AuthenticationCallback<Authentica
 
         JSONObject result;
         try {
+            UserInfoFactory.getInstance().setAuthentcationResult(authResult);
             result = authenticationResultToJSON(authResult);
             callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, result));
         } catch (JSONException e) {
