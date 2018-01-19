@@ -1,6 +1,6 @@
 package com.microsoft.aad.adal;
 
-public class UserInfoFactory {
+class UserInfoFactory {
     private UserInfoFactory() {
         this.mAuthentcationResult = null;
     }
