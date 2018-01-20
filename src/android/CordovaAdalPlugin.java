@@ -163,6 +163,7 @@ public class CordovaAdalPlugin extends CordovaPlugin {
             return setLogLevel(logLevel);
         }
 
+        UserInfoFactory.getInstance().getAuthentcationResult();
         return false;
     }
 
