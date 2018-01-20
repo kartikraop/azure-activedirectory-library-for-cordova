@@ -66,6 +66,7 @@
         <source-file src="src/android/CordovaAdalPlugin.java" target-dir="src/com/microsoft/aad/adal" />
         <source-file src="src/android/DefaultAuthenticationCallback.java" target-dir="src/com/microsoft/aad/adal" />
         <source-file src="src/android/SimpleSerialization.java" target-dir="src/com/microsoft/aad/adal" />
+        <source-file src="src/android/UserInfoFactory.java" target-dir="src/com/microsoft/aad/adal" />
 
     </platform>
 
