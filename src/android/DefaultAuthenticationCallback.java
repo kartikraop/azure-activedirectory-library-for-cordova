@@ -20,17 +20,22 @@ import static com.microsoft.aad.adal.SimpleSerialization.authenticationResultToJ
  */
 class DefaultAuthenticationCallback implements AuthenticationCallback<AuthenticationResult> {
 
+    private final static String FLOW_SERVICE_AUTH_RESOURCE_URI = "https://service.flow.microsoft.com/";
+
     /**
      * Private field that stores cordova callback context which is used to send results back to JS
      */
     private final CallbackContext callbackContext;
 
+    private final String resourceUrl;
+
     /**
      * Default constructor
      * @param callbackContext Cordova callback context which is used to send results back to JS
      */
-    DefaultAuthenticationCallback(CallbackContext callbackContext){
+    DefaultAuthenticationCallback(CallbackContext callbackContext, String resourceUrl){
         this.callbackContext = callbackContext;
+        this.resourceUrl = resourceUrl;
     }
 
     /**
@@ -42,7 +47,10 @@ class DefaultAuthenticationCallback implements AuthenticationCallback<Authentica
 
         JSONObject result;
         try {
-            UserInfoFactory.getInstance().setAuthentcationResult(authResult);
+            if (FLOW_SERVICE_AUTH_RESOURCE_URI.equalsIgnoreCase(this.resourceUrl)) {
+                UserInfoFactory.getInstance().setAuthentcationResult(authResult);
+            }
+
             result = authenticationResultToJSON(authResult);
             callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, result));
         } catch (JSONException e) {

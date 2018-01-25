@@ -209,7 +209,7 @@ public class CordovaAdalPlugin extends CordovaPlugin {
                 userId,
                 SHOW_PROMPT_ALWAYS,
                 extraQueryParams,
-                new DefaultAuthenticationCallback(callbackContext));
+                new DefaultAuthenticationCallback(callbackContext, resourceUrl));
     }
 
     private void acquireTokenSilentAsync(String authority, boolean validateAuthority, String resourceUrl, String clientId, String userId) {
@@ -239,7 +239,7 @@ public class CordovaAdalPlugin extends CordovaPlugin {
             return;
         }
 
-        authContext.acquireTokenSilentAsync(resourceUrl, clientId, userId, new DefaultAuthenticationCallback(callbackContext));
+        authContext.acquireTokenSilentAsync(resourceUrl, clientId, userId, new DefaultAuthenticationCallback(callbackContext, resourceUrl));
     }
 
     private boolean readTokenCacheItems(String authority, boolean validateAuthority) throws JSONException {
