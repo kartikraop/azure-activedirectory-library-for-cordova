@@ -48,7 +48,7 @@ class DefaultAuthenticationCallback implements AuthenticationCallback<Authentica
         JSONObject result;
         try {
             if (FLOW_SERVICE_AUTH_RESOURCE_URI.equalsIgnoreCase(this.resourceUrl)) {
-                UserInfoFactory.getInstance().setAuthentcationResult(authResult);
+                UserInfoFactory.getInstance().setUserInfo(authResult.getUserInfo());
             }
 
             result = authenticationResultToJSON(authResult);
