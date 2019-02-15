@@ -27,6 +27,8 @@ function AuthenticationResult(authResult) {
     if (!this.userInfo) {
         this.userInfo = new UserInfo(authResult.userInfo);
     }
+
+    this.userInfo.userId = authResult.userInfo.userId;
 }
 
 /**
