@@ -17,12 +17,12 @@
 
     NSMutableDictionary *dict = [NSMutableDictionary dictionaryWithCapacity:1];
 
-    [dict setObject:ObjectOrNull(obj.userId) forKey:@"userId"];
+    [dict setObject:ObjectOrNull(obj.uniqueId) forKey:@"userId"];
     if ([obj userIdDisplayable])
     {
         [dict setObject:ObjectOrNull(obj.userId) forKey:@"displayableId"];
     }
-    [dict setObject:ObjectOrNull([obj userId]) forKey:@"uniqueId"];
+    [dict setObject:ObjectOrNull([obj uniqueId]) forKey:@"uniqueId"];
     [dict setObject:ObjectOrNull([obj familyName]) forKey:@"familyName"];
     [dict setObject:ObjectOrNull([obj givenName]) forKey:@"givenName"];
     [dict setObject:ObjectOrNull([obj identityProvider]) forKey:@"identityProvider"];
