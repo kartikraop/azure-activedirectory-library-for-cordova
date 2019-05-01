@@ -1,13 +1,13 @@
 package com.microsoft.aad.adal;
 
-class UserInfoFactory {
+public class UserInfoFactory {
     private UserInfoFactory() {
-        this.mAuthentcationResult = null;
+        this.mUserInfo = null;
     }
 
     private static UserInfoFactory mInstance;
 
-    private AuthenticationResult mAuthentcationResult;
+    private UserInfo mUserInfo;
 
     public static UserInfoFactory getInstance() {
         if (mInstance == null) {
@@ -17,15 +17,11 @@ class UserInfoFactory {
         return mInstance;
     }
 
-    public AuthenticationResult getAuthentcationResult() {
-        return this.mAuthentcationResult;
-    }
-
-    public void setAuthentcationResult(AuthenticationResult authenticationResult) {
-        this.mAuthentcationResult = authenticationResult;
-    }
-
     public UserInfo getUserInfo() {
-        return this.getAuthentcationResult() != null ? this.getAuthentcationResult().getUserInfo() : null;
+        return this.mUserInfo;
+    }
+
+    public void setUserInfo(UserInfo userInfo) {
+        this.mUserInfo = userInfo;
     }
 }
